@@ -78,105 +78,125 @@ def get_track_text(path):
     else:
         return "🎵  " + track[1] + (" 🔀" if shuffle else " ➡️")
 
-nr_of_channels = len(glob("channels/*"))
-channel = 1
+def select_channel():
+    nr_of_channels = len(glob("channels/*"))
+    channel = 1
 
-while True:
-    clear()
-    print(f"Please select channel (1-{nr_of_channels}): {channel}")
-    time.sleep(0.1)
-
-    if keyboard.is_pressed("up"):
-        channel += 1
-    elif keyboard.is_pressed("down"):
-        channel -= 1
-    elif keyboard.is_pressed("right"):
-        break
-
-    channel = max(1, min(channel, nr_of_channels))
-
-clear()
-
-shuffle = False
-playing = True
-queue = sort_tracks(glob(f"channels/{str(channel)}/*.mp3"))
-mixer.init()
-
-try:
-    with open(f"channels/{channel}/name.txt", "r", encoding="utf-8") as file:
-        name = file.readline().strip()
-        if name:
-            print(f"Playing channel {channel} - {name} " + ("🔀" if shuffle else "➡️"))
-        else:
-            print(f"Playing channel {channel} " + ("🔀" if shuffle else "➡️"))
-except FileNotFoundError:
-    print(f"Playing channel {channel} " + ("🔀" if shuffle else "➡️"))
-
-time.sleep(3)
-
-while True:
-    if shuffle:
-        random.shuffle(queue)
-    else:
-        queue = sort_tracks(queue)
-
-    track_i = 0
-
-    while 0 <= track_i < len(queue):
-        track = queue[track_i]
-
-        mixer.music.load(track)
-        mixer.music.play()
-
+    while True:
         clear()
-        print(get_track_text(track))
+        print(f"Please select channel (1-{nr_of_channels}): {channel}")
+        time.sleep(0.1)
 
-        dir = 1
+        if keyboard.is_pressed("up"):
+            channel += 1
+        elif keyboard.is_pressed("down"):
+            channel -= 1
+        elif keyboard.is_pressed("right"):
+            break
 
-        while mixer.music.get_busy() or not playing:
-            time.sleep(0.1)
+        channel = max(1, min(channel, nr_of_channels))
 
-            if keyboard.is_pressed("up"):
-                clear()
-                shuffle = not shuffle
-                print("Shuffle is " + ("on 🔀 " if shuffle else "off ➡️ "))
-                mixer.music.stop()
-                time.sleep(1)
-                dir = 0
-                track_i = len(queue)
-                break
+    return channel
 
-            elif keyboard.is_pressed("down"):
-                clear()
-                playing = not playing
-                if playing:
-                    mixer.music.unpause()
-                    print(get_track_text(track))
-                else:
-                    mixer.music.pause()
-                    print("Playback paused ⏸️")
+def play_channel(channel):
+    global shuffle, playing
 
-            elif keyboard.is_pressed("right"):
-                clear()
-                print("Skipping...")
-                mixer.music.stop()
-                dir = 1
-                time.sleep(0.5)
-                break
+    clear()
+    shuffle = False
+    playing = True
+    queue = sort_tracks(glob(f"channels/{str(channel)}/*.mp3"))
+    mixer.init()
 
-            elif keyboard.is_pressed("left"):
-                clear()
+    try:
+        with open(f"channels/{channel}/name.txt", "r", encoding="utf-8") as file:
+            name = file.readline().strip()
+            if name:
+                print(f"Playing channel {channel} - {name} " + ("🔀" if shuffle else "➡️"))
+            else:
+                print(f"Playing channel {channel} " + ("🔀" if shuffle else "➡️"))
+    except FileNotFoundError:
+        print(f"Playing channel {channel} " + ("🔀" if shuffle else "➡️"))
 
-                if track_i > 0:
-                    print("Going back...")
-                    mixer.music.stop()
-                    dir = -1
-                    time.sleep(0.5)
-                else:
-                    print("Currently on first track")
-                    dir = 0
-                    time.sleep(0.5)
+    time.sleep(3)
+
+    while True:
+        if shuffle:
+            random.shuffle(queue)
+        else:
+            queue = sort_tracks(queue)
+
+        track_i = 0
+
+        while 0 <= track_i < len(queue):
+            track = queue[track_i]
+
+            mixer.music.load(track)
+            mixer.music.play()
+
+            clear()
+            print(get_track_text(track))
+
+            dir = 1
+
+            while mixer.music.get_busy() or not playing:
+                time.sleep(0.1)
+
+                if keyboard.is_pressed("up"):
                     clear()
-                    print(get_track_text(track))
+                    shuffle = not shuffle
+                    print("Shuffle is " + ("on 🔀 " if shuffle else "off ➡️ "))
+                    mixer.music.stop()
+                    time.sleep(1)
+                    dir = 0
+                    track_i = len(queue)
+                    break
 
-        track_i += dir
+                elif keyboard.is_pressed("down"):
+                    clear()
+                    playing = not playing
+                    if playing:
+                        mixer.music.unpause()
+                        print(get_track_text(track))
+                    else:
+                        mixer.music.pause()
+                        print("Playback paused ⏸️")
+
+                elif keyboard.is_pressed("right"):
+                    clear()
+                    print("Skipping...")
+                    mixer.music.stop()
+                    dir = 1
+                    time.sleep(0.5)
+                    break
+
+                elif keyboard.is_pressed("left") and not playing:
+                    clear()
+                    print("Returning to channel selector...")
+                    mixer.music.stop()
+                    time.sleep(1)
+                    return True
+
+                elif keyboard.is_pressed("left"):
+                    clear()
+
+                    if track_i > 0:
+                        print("Going back...")
+                        mixer.music.stop()
+                        dir = -1
+                        time.sleep(0.5)
+                    else:
+                        print("Currently on first track")
+                        dir = 0
+                        time.sleep(0.5)
+                        clear()
+                        print(get_track_text(track))
+
+            track_i += dir
+
+    return False
+
+
+while True:
+    channel = select_channel()
+    if play_channel(channel):
+        continue
