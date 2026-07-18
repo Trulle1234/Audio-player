@@ -79,17 +79,21 @@ def get_track_text(path):
         return "🎵  " + track[1] + (" 🔀" if shuffle else " ➡️")
 
 nr_of_channels = len(glob("channels/*"))
+channel = 1
 
 while True:
     clear()
+    print(f"Please select channel (1-{nr_of_channels}): {channel}")
+    time.sleep(0.1)
 
-    try:
-        channel = int(input(f"Please select channel (1-{nr_of_channels}): "))
-    except ValueError:
-        continue
-
-    if 1 <= channel <= nr_of_channels:
+    if keyboard.is_pressed("up"):
+        channel += 1
+    elif keyboard.is_pressed("down"):
+        channel -= 1
+    elif keyboard.is_pressed("right"):
         break
+
+    channel = max(1, min(channel, nr_of_channels))
 
 clear()
 
