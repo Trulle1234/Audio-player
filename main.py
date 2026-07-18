@@ -15,6 +15,9 @@ if getattr(sys, "frozen", False):
 def clear():
     os.system('cls' if os.name == 'nt' else 'clear')
 
+def wait_for_release(key):
+    while keyboard.is_pressed(key):
+        time.sleep(0.01)
 
 def sort_tracks(paths):
     return sorted(paths, key=lambda path: (os.path.getmtime(path), Path(path).name.lower()))
@@ -92,10 +95,13 @@ def select_channel():
         time.sleep(0.1)
 
         if keyboard.is_pressed("up"):
+            wait_for_release("up")
             channel += 1
         elif keyboard.is_pressed("down"):
+            wait_for_release("down")
             channel -= 1
         elif keyboard.is_pressed("right"):
+            wait_for_release("right")
             break
 
         channel = max(1, min(channel, nr_of_channels))
@@ -109,6 +115,13 @@ def play_channel(channel):
     shuffle = False
     playing = True
     queue = sort_tracks(glob(f"channels/{str(channel)}/*.mp3"))
+
+    if queue == []:
+        print("Channel empty, going back...")
+        time.sleep(1)
+    
+        return True
+
     mixer.init()
 
     try:
@@ -146,6 +159,7 @@ def play_channel(channel):
                 time.sleep(0.1)
 
                 if keyboard.is_pressed("up"):
+                    wait_for_release("up")
                     clear()
                     shuffle = not shuffle
                     print("Shuffle is " + ("on 🔀 " if shuffle else "off ➡️ "))
@@ -156,6 +170,7 @@ def play_channel(channel):
                     break
 
                 elif keyboard.is_pressed("down"):
+                    wait_for_release("down")
                     clear()
                     playing = not playing
                     if playing:
@@ -166,6 +181,7 @@ def play_channel(channel):
                         print("Playback paused ⏸️")
 
                 elif keyboard.is_pressed("right"):
+                    wait_for_release("right")
                     clear()
                     print("Skipping...")
                     mixer.music.stop()
@@ -174,6 +190,7 @@ def play_channel(channel):
                     break
 
                 elif keyboard.is_pressed("left") and not playing:
+                    wait_for_release("left")
                     clear()
                     print("Returning to channel selector...")
                     mixer.music.stop()
@@ -181,6 +198,7 @@ def play_channel(channel):
                     return True
 
                 elif keyboard.is_pressed("left"):
+                    wait_for_release("left")
                     clear()
 
                     if track_i > 0:
