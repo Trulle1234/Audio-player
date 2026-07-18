@@ -1,4 +1,5 @@
 import os
+import sys
 import time
 import random
 import re
@@ -7,6 +8,9 @@ from pathlib import Path
 from mutagen import File
 from glob import glob
 from pygame import mixer
+
+if getattr(sys, "frozen", False):
+    os.chdir(Path(sys.executable).parent)
 
 def clear():
     os.system('cls' if os.name == 'nt' else 'clear')
