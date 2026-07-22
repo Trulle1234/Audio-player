@@ -95,10 +95,8 @@ def select_channel():
         time.sleep(0.1)
 
         if keyboard.is_pressed("up"):
-            wait_for_release("up")
             channel += 1
         elif keyboard.is_pressed("down"):
-            wait_for_release("down")
             channel -= 1
         elif keyboard.is_pressed("right"):
             wait_for_release("right")
@@ -107,6 +105,29 @@ def select_channel():
         channel = max(1, min(channel, nr_of_channels))
 
     return channel
+
+def select_skip_time(track):
+    audio = File(track)
+    len = int(audio.info.length / 60)
+
+    minute = 0
+
+    while True:
+        clear()
+        print(f"Please select playback start (0-{len}): {minute}")
+        time.sleep(0.1)
+
+        if keyboard.is_pressed("up"):
+            minute += 1
+        elif keyboard.is_pressed("down"):
+            minute -= 1
+        elif keyboard.is_pressed("right"):
+            wait_for_release("right")
+            break
+
+        minute = max(0, min(minute, len))
+
+    return minute
 
 def play_channel(channel):
     global shuffle, playing
@@ -179,6 +200,18 @@ def play_channel(channel):
                     else:
                         mixer.music.pause()
                         print("Playback paused ⏸️")
+
+                elif keyboard.is_pressed("right") and not playing:
+                    wait_for_release("right")
+
+                    clear()
+                    position = select_skip_time(track) * 60
+                    playing = True
+                    mixer.music.play(start=position)
+
+                    clear()
+                    print(get_track_text(track))
+                    print(position)
 
                 elif keyboard.is_pressed("right"):
                     wait_for_release("right")
