@@ -37,6 +37,13 @@ To return to the channel selector:
 1. Press DOWN to pause playback.
 2. Press LEFT.
 
+To play from a specific minute:
+
+1. Press DOWN to pause playback.
+2. Press RIGHT.
+3. Use UP and DOWN to choose the starting minute.
+4. Press RIGHT to begin playback from there.
+
 TRACK INFORMATION
 -----------------
 

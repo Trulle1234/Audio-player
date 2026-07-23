@@ -211,7 +211,6 @@ def play_channel(channel):
 
                     clear()
                     print(get_track_text(track))
-                    print(position)
 
                 elif keyboard.is_pressed("right"):
                     wait_for_release("right")
