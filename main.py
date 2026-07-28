@@ -4,24 +4,30 @@ import time
 import random
 import re
 import keyboard
+import pyvolume
 from pathlib import Path
 from mutagen import File
 from glob import glob
 from pygame import mixer
 
+# get file location
 if getattr(sys, "frozen", False):
     os.chdir(Path(sys.executable).parent)
 
+# clear terminal
 def clear():
     os.system('cls' if os.name == 'nt' else 'clear')
 
+# check for key release
 def wait_for_release(key):
     while keyboard.is_pressed(key):
         time.sleep(0.01)
 
+# sort tracks by date modified
 def sort_tracks(paths):
     return sorted(paths, key=lambda path: (os.path.getmtime(path), Path(path).name.lower()))
 
+# get track metadat
 def get_track_meta(path):
     audio = File(path, easy=True)
 
@@ -60,6 +66,7 @@ def get_track_meta(path):
     return None
     
 
+# get track name (form metadata if avalible else from file name)
 def get_track_name(path):
     track_info = get_track_meta(path)
 
@@ -76,7 +83,7 @@ def get_track_name(path):
 
         return  ["music", name[:1].upper() + name[1:]]
 
-    
+# get info about track to dissplay    
 def get_track_text(path):
     track = get_track_name(path)
     
@@ -85,6 +92,7 @@ def get_track_text(path):
     else:
         return "🎵  " + track[1] + (" 🔀" if shuffle else " ➡️")
 
+# channel selector interface
 def select_channel():
     nr_of_channels = len(glob("channels/*"))
     channel = 1
@@ -106,6 +114,7 @@ def select_channel():
 
     return channel
 
+# skip to interface
 def select_skip_time(track):
     audio = File(track)
     len = int(audio.info.length / 60)
@@ -129,14 +138,25 @@ def select_skip_time(track):
 
     return minute
 
+# main code to play and check for input
 def play_channel(channel):
     global shuffle, playing
 
     clear()
     shuffle = False
     playing = True
-    queue = sort_tracks(glob(f"channels/{str(channel)}/*.mp3"))
+    volume = 20
 
+    pyvolume.custom(percent = volume)
+
+    queue = sort_tracks(
+        glob(f"channels/{str(channel)}/*.mp3") +
+        glob(f"channels/{str(channel)}/*.wav") +
+        glob(f"channels/{str(channel)}/*.ogg") +
+        glob(f"channels/{str(channel)}/*.flac")
+    )
+
+    # check for empty channel
     if queue == []:
         print("Channel empty, going back...")
         time.sleep(1)
@@ -145,6 +165,7 @@ def play_channel(channel):
 
     mixer.init()
 
+    # open channel
     try:
         with open(f"channels/{channel}/name.txt", "r", encoding="utf-8") as file:
             name = file.readline().strip()
@@ -165,6 +186,7 @@ def play_channel(channel):
 
         track_i = 0
 
+        # channel playing loop
         while 0 <= track_i < len(queue):
             track = queue[track_i]
 
@@ -176,9 +198,11 @@ def play_channel(channel):
 
             dir = 1
 
+            # check for user inputs
             while mixer.music.get_busy() or not playing:
                 time.sleep(0.1)
 
+                # toggle shuffle
                 if keyboard.is_pressed("up"):
                     wait_for_release("up")
                     clear()
@@ -190,6 +214,7 @@ def play_channel(channel):
                     track_i = len(queue)
                     break
 
+                # pause and unpause playback
                 elif keyboard.is_pressed("down"):
                     wait_for_release("down")
                     clear()
@@ -201,6 +226,7 @@ def play_channel(channel):
                         mixer.music.pause()
                         print("Playback paused ⏸️")
 
+                # skip to minute in track
                 elif keyboard.is_pressed("right") and not playing:
                     wait_for_release("right")
 
@@ -213,6 +239,7 @@ def play_channel(channel):
                     print(get_track_text(track))
                     print(position)
 
+                # skip track
                 elif keyboard.is_pressed("right"):
                     wait_for_release("right")
                     clear()
@@ -222,6 +249,7 @@ def play_channel(channel):
                     time.sleep(0.5)
                     break
 
+                # return to channel selection
                 elif keyboard.is_pressed("left") and not playing:
                     wait_for_release("left")
                     clear()
@@ -230,6 +258,7 @@ def play_channel(channel):
                     time.sleep(1)
                     return True
 
+                # go to previus track
                 elif keyboard.is_pressed("left"):
                     wait_for_release("left")
                     clear()
@@ -246,11 +275,43 @@ def play_channel(channel):
                         clear()
                         print(get_track_text(track))
 
+                # increse volume
+                elif keyboard.is_pressed("w"):
+                    wait_for_release("w")
+                    clear()
+
+                    volume += 5
+                    volume = max(0, min(volume, 100))
+
+                    print("Volume set to " + str(volume) + "%")
+
+                    pyvolume.custom(percent = volume)
+
+                    time.sleep(0.5)
+                    clear()
+                    print(get_track_text(track))
+
+                # decrese volume
+                elif keyboard.is_pressed("s"):
+                    wait_for_release("s")
+                    clear()
+
+                    volume -= 5
+                    volume = max(0, min(volume, 100))
+
+                    print("Volume set to " + str(volume) + "%")
+
+                    pyvolume.custom(percent = volume)
+
+                    time.sleep(0.5)
+                    clear()
+                    print(get_track_text(track))
+                    
             track_i += dir
 
     return False
 
-
+# loop to select channel and then play it
 while True:
     channel = select_channel()
     if play_channel(channel):
