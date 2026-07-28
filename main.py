@@ -237,7 +237,6 @@ def play_channel(channel):
 
                     clear()
                     print(get_track_text(track))
-                    print(position)
 
                 # skip track
                 elif keyboard.is_pressed("right"):
