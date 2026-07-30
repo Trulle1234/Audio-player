@@ -3,6 +3,7 @@ import sys
 import time
 import random
 import re
+import json
 import keyboard
 import pyvolume
 from pathlib import Path
@@ -27,7 +28,19 @@ def wait_for_release(key):
 def sort_tracks(paths):
     return sorted(paths, key=lambda path: (os.path.getmtime(path), Path(path).name.lower()))
 
-# get track metadat
+def get_volume():
+    with open("volume.txt", "r", encoding="utf-8") as f:
+        volume = f.readline().strip()
+
+    if volume == "":
+        volume = "20"
+
+        with open("volume.txt", "w", encoding="utf-8") as f:
+            f.write(volume)
+
+    return int(volume)
+
+# get track metadata
 def get_track_meta(path):
     audio = File(path, easy=True)
 
@@ -49,14 +62,17 @@ def get_track_meta(path):
 
     genre = genre.lower().strip() if genre else ""
 
-    if genre == "podcast" and title and album:
+    if "podcast" in path.lower():
+        return { "type": "podcast" }
+
+    elif genre == "podcast" and title and album:
         return {
             "title": title,
             "artist": album,
             "type": "podcast"
         }
 
-    if title and artist:
+    elif title and artist:
         return {
             "title": title,
             "artist": artist,
@@ -64,26 +80,55 @@ def get_track_meta(path):
         }
 
     return None
-    
+
+# read json to get track start pos
+def get_track_start(path):
+    track_key = str(path)
+
+    with open("state.json", "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    if track_key not in data:
+        data[track_key] = 0
+
+        with open("state.json", "w", encoding="utf-8") as f:
+            json.dump(data, f, indent = 4)
+
+    return(data[track_key])
+
+# update track start pos in state.json
+def update_track_start(path, minute):
+    track_key = str(path)
+
+    with open("state.json", "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    data[track_key] = int(minute)
+
+    with open("state.json", "w", encoding="utf-8") as f:
+        json.dump(data, f, indent = 4)
 
 # get track name (form metadata if avalible else from file name)
 def get_track_name(path):
     track_info = get_track_meta(path)
 
-    if track_info:
+    if track_info and track_info.get("title") and track_info.get("artist") and track_info.get("type"):
         return [track_info["type"], track_info["artist"].capitalize() + " - " + track_info["title"].capitalize()]
         
-    else:
-        name = Path(path).stem
+    name = Path(path).stem
+    name = name.replace("_", " ")
+    name = re.sub(r"(?<=\w)-(?=\w)", " ", name)
+    name = re.sub(r"\s+", " ", name).strip()
 
-        name = name.replace("_", " ")
-        name = re.sub(r"(?<=\w)-(?=\w)", " ", name)
-        
-        name = re.sub(r"\s+", " ", name).strip()
+    track_type = (
+        track_info.get("type")
+        if track_info and track_info.get("type")
+        else "music"
+    )
 
-        return  ["music", name[:1].upper() + name[1:]]
+    return [track_type, name[:1].upper() + name[1:]]
 
-# get info about track to dissplay    
+# get info about track to display    
 def get_track_text(path):
     track = get_track_name(path)
     
@@ -115,15 +160,15 @@ def select_channel():
     return channel
 
 # skip to interface
-def select_skip_time(track):
-    audio = File(track)
-    len = int(audio.info.length / 60)
+def select_skip_time(path):
+    audio = File(path)
+    length = audio.info.length // 60
 
     minute = 0
 
     while True:
         clear()
-        print(f"Please select playback start (0-{len}): {minute}")
+        print(f"Please select playback start (0-{length}): {minute}")
         time.sleep(0.1)
 
         if keyboard.is_pressed("up"):
@@ -134,7 +179,7 @@ def select_skip_time(track):
             wait_for_release("right")
             break
 
-        minute = max(0, min(minute, len))
+        minute = max(0, min(minute, length))
 
     return minute
 
@@ -145,7 +190,7 @@ def play_channel(channel):
     clear()
     shuffle = False
     playing = True
-    volume = 20
+    volume = get_volume()
 
     pyvolume.custom(percent = volume)
 
@@ -155,7 +200,9 @@ def play_channel(channel):
         glob(f"channels/{str(channel)}/*.ogg") +
         glob(f"channels/{str(channel)}/*.flac")
     )
-
+    
+    queue = [f.replace("\\", "/") for f in queue]
+    
     # check for empty channel
     if queue == []:
         print("Channel empty, going back...")
@@ -167,8 +214,8 @@ def play_channel(channel):
 
     # open channel
     try:
-        with open(f"channels/{channel}/name.txt", "r", encoding="utf-8") as file:
-            name = file.readline().strip()
+        with open(f"channels/{channel}/name.txt", "r", encoding="utf-8") as f:
+            name = f.readline().strip()
             if name:
                 print(f"Playing channel {channel} - {name} " + ("🔀" if shuffle else "➡️"))
             else:
@@ -189,18 +236,36 @@ def play_channel(channel):
         # channel playing loop
         while 0 <= track_i < len(queue):
             track = queue[track_i]
+            track_type = get_track_name(track)[0]
+
+            start_pos = 0
+
+            if track_type == "podcast":
+                saved_minute = int(get_track_start(track))
+                start_pos = saved_minute * 60
+
+            last_state_save = 0
 
             mixer.music.load(track)
-            mixer.music.play()
+            mixer.music.play(start = start_pos)
 
             clear()
             print(get_track_text(track))
 
             dir = 1
 
-            # check for user inputs
+            # check for user inputs, and update state
             while mixer.music.get_busy() or not playing:
                 time.sleep(0.1)
+
+                # update state for podcasts
+                if track_type == "podcast":
+                    current_seconds = start_pos + max(0, mixer.music.get_pos() / 1000)
+
+                    if time.monotonic() - last_state_save >= 5:
+                        last_state_save = time.monotonic()
+
+                        update_track_start(track, current_seconds // 60)
 
                 # toggle shuffle
                 if keyboard.is_pressed("up"):
@@ -232,8 +297,9 @@ def play_channel(channel):
 
                     clear()
                     position = select_skip_time(track) * 60
+                    start_pos = position
                     playing = True
-                    mixer.music.play(start=position)
+                    mixer.music.play(start=start_pos)
 
                     clear()
                     print(get_track_text(track))
@@ -274,13 +340,16 @@ def play_channel(channel):
                         clear()
                         print(get_track_text(track))
 
-                # increse volume
+                # increse volume (system level)
                 elif keyboard.is_pressed("w"):
                     wait_for_release("w")
                     clear()
 
                     volume += 5
                     volume = max(0, min(volume, 100))
+
+                    with open(f"volume.txt", "w", encoding="utf-8") as f:
+                        f.write(str(volume))
 
                     print("Volume set to " + str(volume) + "%")
 
@@ -290,13 +359,16 @@ def play_channel(channel):
                     clear()
                     print(get_track_text(track))
 
-                # decrese volume
+                # decrese volume (system level)
                 elif keyboard.is_pressed("s"):
                     wait_for_release("s")
                     clear()
 
                     volume -= 5
                     volume = max(0, min(volume, 100))
+
+                    with open(f"volume.txt", "w", encoding="utf-8") as f:
+                        f.write(str(volume))
 
                     print("Volume set to " + str(volume) + "%")
 

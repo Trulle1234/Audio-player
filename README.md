@@ -16,7 +16,7 @@ The interface is intentionally limited to one line of text because I eventually 
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/Trulle1234/mp3-player.git
+git clone https://github.com/Trulle1234/mp3-player
 cd mp3-player
 ```
 
@@ -43,10 +43,10 @@ pip install pyinstaller
 Then build the executable:
 
 ```bash
-pyinstaller --clean --onefile --console --collect-all pygame --collect-all mutagen main.py
+pyinstaller py -m PyInstaller --onefile --console main.py
 ```
 
-The finished executable will be created in the `dist` folder, move it into root. You can safley delete delete `build/` and `main.spec`.
+The finished executable will be created in the `dist/` folder, move it into root. You can safley delete delete `build/` and `main.spec`.
 
 ```text
 dist/main.exe
