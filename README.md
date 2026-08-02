@@ -2,7 +2,7 @@
 
 This is a simple terminal-based Audio Player.
 
-The interface is intentionally limited to one line of text because I eventually plan to build a physical version using a small text-based LCD display. Think of the current program as a digital simulation: the terminal acts as the display, and the arrow keys act as the device’s physical buttons.
+The interface is intentionally limited to one line of text because I eventually plan to build a physical version using a small text-based display. Think of the current program as a digital simulation: the terminal acts as the display, and the arrow keys act as the device’s physical buttons.
 
 ## Use the prebuilt version
 
