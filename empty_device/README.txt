@@ -35,9 +35,9 @@ RIGHT - Skip to the next track.
 
 LEFT - Return to the previous track.
 
-VOLUME UP (in terminal W)- Increase volume by 5 points.
+VOLUME UP (in terminal W) - Increase volume by 5 points.
 
-VOLUME DOWN (in terminal S)- Decrease volume by 5 points.
+VOLUME DOWN (in terminal S) - Decrease volume by 5 points.
 
 To return to the channel selector:
 
