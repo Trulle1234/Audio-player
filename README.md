@@ -16,7 +16,7 @@ The interface is intentionally limited to one line of text because I eventually 
 ### 1. Clone the repository
 
 ```bash
-git https://github.com/Trulle1234/Audio-player
+git clone https://github.com/Trulle1234/Audio-player
 cd Audio-player
 ```
 
