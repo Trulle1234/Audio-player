@@ -23,7 +23,7 @@ cd Audio-player
 ### 2. Install the required packages
 
 ```bash
-py -m pip install keyboard mutagen pygame pyvolume
+py -m pip install keyboard mutagen pygame-ce pyvolume
 ```
 
 ### 3. Run the player
