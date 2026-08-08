@@ -51,3 +51,9 @@ The finished executable will be created in the `dist/` folder, move it into root
 ```text
 dist/main.exe
 ```
+
+<br>
+
+_**AI declaration:**_
+
+_AI  was mostly not used, exept for some debugging_
