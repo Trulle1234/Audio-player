@@ -1,6 +1,6 @@
 # Audio Player
 
-This is a simple terminal-based Audio Player.
+This is a simple terminal-based audio payer.
 
 The interface is intentionally limited to one line of text because I eventually plan to build a physical version using a small text-based display. Think of the current program as a digital simulation: the terminal acts as the display, and the arrow keys act as the device’s physical buttons.
 
